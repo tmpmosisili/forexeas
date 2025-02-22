@@ -28,7 +28,54 @@ int BarsN = 5;
 int ExpirationBars = 100;
 int OrderDistPoints = 100;
 
+int OnInit() {
+  trade.SetExpertMagicNumber(InpMagic);
+  ChartSetInteger(0,CHART_SHOW_GRID, false);
+  return(INIT_SUCCEEDED);
+}
 
+void OnTick(){
+  TrailStop();
+  if (!IsNewBar()) return;
+  MqlDateTime time;
+
+  TimeToStruct(TimeCurrent(),time);
+
+  int Hournow = time.hour;
+
+  SHChoice = SHInput;
+  EHChoice = EHInput;
+
+  if(Hournow<SHChoice) {CloseAllOrders(); return;}
+  if(Hournow >= EHChoice && EHChoice != 0 ){CloseAllOrders(); return;}
+
+  int BuyTotal = 0;
+  int SelTotal = 0;
+
+  for (int i=PositionsTotal()-1; i>=0; i--){
+    pos.SelectByIndex(i);
+    if(pos.PositionType()==POSITION_TYPE_BUY && pos.Symbol()==_Symbol && pos.Magic()==Inpmagic) BuyTotal++;
+    if(pos.PositionType()==POSITION_TYPE_SELL && pos.Symbol()==_Symbol && pos.Magic()==Inpmagic) SellTotal++;
+  }
+  for (int i=OrdersTotal()-1; i>=0; i--){
+    ord.SelectByIndex(i);
+    if(ord.OrderType()==POSITION_TYPE_BUY_STOP && ord.Symbol()==_Symbol && ord.Magic()==Inpmagic) BuyTotal++;
+    if(ord.OrderType()==POSITION_TYPE_SELL_STOP && ord.Symbol()==_Symbol && ord.Magic()==Inpmagic) SellTotal++;
+  }
+  if (BuyTotal <= 0){
+    double high = findHigh();
+    if(high > 0){
+      SendBuyOrder(high);
+    }
+  }
+  if (SellTotal <= 0){
+    double low = findLow();
+    if(low > 0){
+      SendSellOrder(low);
+    }
+  }
+
+}
 
 double findHigh(){
   double highestHigh = 0;
@@ -110,3 +157,48 @@ void SendSellOrder(double entry){
   datetime expiration = iTime(_Symbol,Timeframe,0) + ExpirationBars * PeriodSeconds(Timeframe);
   trade.SellStop(lots,entry,_Symbol,sl,tp,ORDER_TIME_SPECIFIED,expiration);
 } 
+
+void CloseAllOrders(){
+  for(int i=0rdersTotal() - 1;i >= 0;i--){
+    ord.SelectByIndex(i);
+    ulong ticket = ord.Ticket();
+    if(ord.Symbol()==_Symbol && ord.Magic() == InpMagic){
+      trade.OrderDelete(ticket);
+    }
+  }
+}
+
+void TrailStop(){
+
+  double sl = 0;
+  double tp = 0;
+  double ask = SymbolInfoDouble(_Symbol,SYMBOL_ASK);
+  double bid = SymbolInfoDouble(_Symbol,SYMBOL_BID);
+  for (int i=PositionsTotal()-1; i>=0; i--){
+    if(pos.SelectByIndex(i)){
+      ulong ticket = pos.Ticket();
+      if(pos.Magic() == InpMagic && pos.Symbol()==_Symbol){
+
+        if(pos.PositionType()==POSITION_TYPE_BUY){
+          if(bid-pos.PriceOpen()>TslTriggerPoints*_Point){
+            tp = pos.TakeProfit();
+            sl = bid - (TslPoints * _Point);
+
+            if(sl > pos.StopLoss() && sl != 0){
+              trade.PositionModify(ticket,sl,tp);
+            }
+          }
+        }
+        else if(pos.PositionType()==POSITION_TYPE_SELL){
+          if(ask+(TslTriggerPoints*_Point)<pos.PriceOpen()){
+            tp = pos.TakeProfit();
+            $1 = ask + (TslPoints * _Point);
+            if(sl < pos.StopLoss() && sl!=e){
+              trade.PositionModify(ticket,sl,tp);
+            }
+          }
+        }
+      }
+    }
+  }
+}
