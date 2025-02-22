@@ -31,12 +31,13 @@ int EHChoice;
 int BarsN = 5;
 int ExpirationBars = 100;
 int OrderDistPoints = 100;
+double Tppoints, Slpoints, TslTriggerPoints, TslPoints;
 
 input group "=== Forex Trading Inputs ==="
-input int Tppoints = 200; // Take Profit (10 points = 1 pip)
-input int Slpoints = 200; // Stoploss Points (10 points = 1 pip)
-input int TslTriggerPoints = 15; // Points in profit before Trailing SL is activated (10 points = 1 pip)
-input int TslPoints = 10; // Trailing Stop Loss (16 points = 1 pip)
+input int TppointsInput          = 200; // Take Profit (10 points = 1 pip)
+input int SlpointsInput          = 200; // Stoploss Points (10 points = 1 pip)
+input int TslTriggerPointsInput  = 15; // Points in profit before Trailing SL is activated (10 points = 1 pip)
+input int TslPointsInput         = 10; // Trailing Stop Loss (16 points = 1 pip)
 
 input group "=== Crypto Related Inputs === (effective only under Bitcoin profile)"
 
@@ -44,6 +45,18 @@ input double TPasPct = 0.4; // TP as % of Price
 input double SLasPct = 0.4; // SL as % of Price
 input double TSLasPctOfTP = 5; //Trail SL as % of TP
 input double TSLTfrasPctofTP = 7; //Trigger of Trail SL % of TP
+
+input group "=== Gold Related Input === (effective only under Gold profile)"
+input double TPasPctGold =0.2; // TP as % of Price
+input double SLasPctGold = 0.2; // SL as % of Price
+input double TSLasPctofTPGold= 5; // Trail SL as % of TP
+input double TSLTgrasPctofTPGold = 7; // Trigger of Trail SL % of TP
+
+input group "=== Indices Related InpuL === (effective only under Indices profile)"
+input double TPasPctIndices =0.2; // TP as % of Price
+input double SLasPctIndices = 0.2; // SL as % of Price
+input double TSLasPctofTPIndices=5; // Trail SL as x of TP
+input double TSLTgrasPctofTPIndices = 7; // Trigger of Trail SL % of TP
 
 int OnInit() {
   trade.SetExpertMagicNumber(InpMagic);
@@ -66,6 +79,32 @@ void OnTick(){
 
   if(Hournow<SHChoice) {CloseAllOrders(); return;}
   if(Hournow >= EHChoice && EHChoice != 0 ){CloseAllOrders(); return;}
+
+  if(SysChoice==1){
+    double ask = SymbolInfoDouble(_Symbol,SYMBOL_ASK);
+    Tppoints = ask * TPasPct; 
+    Slpoints = ask * SLasPct;
+    OrderDistPoints = Tppoints/2;
+    TslPoints = Tppoints * TSLasPctofTP/100;
+    TslTriggerPoints = Tppoints * TSLTgrasPctofTP/100;
+  }
+
+  if(SbsChoice==2){
+    double ask = SymbollnfoDouble(_Symbol,SYMBOL_ASK);
+    Tppoints = ask * TPasPctGold;
+    Slpoints = ask * SLasPctGold;
+    OrderDistPoints = Tppoints / 2;
+    TslPoints = Tppoints * TSLasPctofTPGold/100;
+    TslTriggerPoints: Tppoints * TSLTgrasPctofTPGold/100;
+  }
+  if(SysChoice==3){
+    double ask = SymbolInfoDouble(_Symbol,SYMBOL_ASK);
+    Tppoints = ask * TPasPctIndices;
+    Slpoints = ask * SLasPctIndices;
+    OrderDistPoints = Tppoints/2;
+    TslPoints = Tppoints * TSLasPctofTPIndices/100;
+    TslTriggerPoints: Tppoints * TSLTgrasPctefTPIndices/100;
+  }
 
   int BuyTotal = 0;
   int SelTotal = 0;
