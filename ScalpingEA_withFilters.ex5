@@ -33,6 +33,18 @@ int ExpirationBars = 100;
 int OrderDistPoints = 100;
 double Tppoints, Slpoints, TslTriggerPoints, TslPoints;
 
+int handleRSI, handleMovAvg;
+
+int handleRSI, handleMovAvg;
+
+input color ChartColorTradingOff = crlPink; // Chart color when EA is Inactive
+
+input color ChartColorTradingOn = crlBlack; // Chart color when EA is active
+bool Tradingenabled = true;
+
+input bool HideIndicators = true; // Hide Indicators on Chart?
+string TradingEnabledComm = "";
+
 input group "=== Forex Trading Inputs ==="
 input int TppointsInput          = 200; // Take Profit (10 points = 1 pip)
 input int SlpointsInput          = 200; // Stoploss Points (10 points = 1 pip)
@@ -57,6 +69,20 @@ input double TPasPctIndices =0.2; // TP as % of Price
 input double SLasPctIndices = 0.2; // SL as % of Price
 input double TSLasPctofTPIndices=5; // Trail SL as x of TP
 input double TSLTgrasPctofTPIndices = 7; // Trigger of Trail SL % of TP
+
+input group "=== News Filter ==="
+input bool NewsFilterOn = true; //Filter for Level 3 News?
+enum sep_dropdown{comma=0,semicolon=1};
+input sep_dropdown separator = 0; //Separator to separate news keywords
+input string KeyNews = "BCB,NFP,JOLTS,Nonfarm,PMI,Retail,GDP,Confidence,Interest Rate"; //Keywords in News to avoid (separated by separator)
+input string NewsCurrencies = "USD,GBP,EUR,JPY"; //Currencies for News LookUp
+input int DaysNewsLookup = 100; // No of Days to look up news
+input int StopBeforeMin = 15; // Stop Trading before (in minutes)
+input int StartTradingMin = 15; // Start Trading after (in minutes)
+bool TrDisabledNews = false; // variable to store if trading disabled due to news
+ushort sep_code;
+string Newstoavoid[];
+datetime LastNewsAvoided;
 
 int OnInit() {
   trade.SetExpertMagicNumber(InpMagic);
@@ -258,4 +284,51 @@ void TrailStop(){
       }
     }
   }
+}
+
+bool IsUpcomingNews(){
+    if(NewsFilterOn==false) return(false);
+    if(TrDisabledNews && TimeCurrent()-LastNewsAvoided < StartTradingMin*PeriodSeconds(PERIOD_M1)) return true;
+    TrDisabledNews=false;
+    string sep;
+    switch(separator){
+        case 0: sep = ","; break;
+        case 1: sep = ";";
+    }
+    sep_code = StringGetCharacter(sep,0);
+
+    int k = StringSplit(KeyNews,sep_code,Newstoavoid);
+
+    MqlCalendarValue values[];
+
+    datetime starttime = TimeCurrent(); //iTime(_Symbol,PERIOD_Dl,0);
+    datetime endtime = starttime + PeriodSeconds(PERIOD_Dl)*DaysNewsLookup;
+    CalendarValueHistory(values,starttime,endtime,NULL,NULL);
+
+    for(int i = 0; i < ArraySize(values); i++){
+        MqlCalendarEvent event;
+        CalendarEventById(values[i].event_id, event);
+        MqlCalendarCountry country;
+        CalendarCountryById(event.country_id,country);
+
+        if(StringFind(NewsCurrencies,country.currency) < 0) continue;
+        for(int j=6; j<k; j++){
+            string currentevent = Newstoavoid[j];
+            string currentnews = event.name;
+            if(StringFind(currentnews,currentevent) < 6) continue;
+            Comment("Next News: ", country.currency ,"z ", event.name; " -> ", values[i].time);
+
+            if(values[i].time - TimeCurrent() < StopBeforeMin*PeriodSeconds(PERIOD_M1)){ 
+                LastNewsAvoided = values[i].time;
+                TrDisabledNews = true;
+                if(TradingEnabledComm=="" || TradingEnabledComm!="Printed"){
+                    TradingEnabledComm = "Trading is disabled due to upcoming news: " + event.name;
+                }
+            return true;
+            }
+            return false;
+        }
+
+    }
+    return false;
 }
