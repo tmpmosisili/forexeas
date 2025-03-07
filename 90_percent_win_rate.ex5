@@ -71,8 +71,8 @@ void OnTick(){
   }
   for (int i=OrdersTotal()-1; i>=0; i--){
     ord.SelectByIndex(i);
-    if(ord.OrderType()== POSITION_TYPE_BUY_STOP && ord.Symbol()==_Symbol && ord.Magic()==InpMagic) BuyTotal++;
-    if(ord.OrderType()==POSITION_TYPE_SELL_STOP && ord.Symbol()==_Symbol && ord.Magic()==InpMagic) SellTotal++;
+    if(ord.OrderType()== ORDER_TYPE_BUY_STOP && ord.Symbol()==_Symbol && ord.Magic()==InpMagic) BuyTotal++;
+    if(ord.OrderType()== ORDER_TYPE_SELL_STOP && ord.Symbol()==_Symbol && ord.Magic()==InpMagic) SellTotal++;
   }
   if (BuyTotal <= 0){
     double high = findHigh();
