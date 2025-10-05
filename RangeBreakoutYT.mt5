@@ -1,0 +1,20 @@
+input int RangeHouStart = 3;
+input int RangeMinStart = 3;
+input int RangeHourEnd = 3;
+input int RangeMinEnd = 3;
+input int TradingEndHour = 18;
+input int TradingEndMin = 0;
+
+datetime rangeTimeStart;
+datetime rangeTimeEnd;
+datetime tradingTime;
+
+int OnInit(){
+  return (INIT_SUCCEEDED);
+}
+
+void OnDeinit (const int reason){
+}
+
+void OnTick(){
+}
