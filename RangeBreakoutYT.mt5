@@ -7,7 +7,10 @@ input int TradingEndMin = 0;
 
 datetime rangeTimeStart;
 datetime rangeTimeEnd;
-datetime tradingTime;
+datetime tradingTimeEnd;
+
+double rangeHig;
+double rangeLow;
 
 int OnInit(){
   return (INIT_SUCCEEDED);
@@ -17,4 +20,38 @@ void OnDeinit (const int reason){
 }
 
 void OnTick(){
+  calcTimes();
+  calcRange();
+}
+
+void calcTimes(){
+  MqlDateTime dt;
+  TimeCurrent(dt);
+  dt.sec = 0;
+
+  dt.hour = RangeStartHour;
+  dt.min = RangeStartMin;
+  rangeTimeStart = StructToTime(dt);
+
+  dt.hour = RangeEndHour;
+  dt.min = RangeEndMin;
+  rangeTimeEnd = StructToTime(dt);
+
+  dt.hour = TradingEndHour;
+  dt.min = TradingEndMin;
+  tradingTimeEnd = StructToTime(dt);
+}
+
+void calcRange(){
+  double highs[];
+  CopyHigh(_Symbol,PERIOD_M1,rangeTimeStart, rangeTimeEnd, highs);
+
+  double lows[];
+  CopyLow(_Symbol,PERIOD_M1,rangeTimeStart, rangeTimeEnd, lows);
+  int indexHighest = ArrayMaximum (highs);
+  int indexLowest = ArrayMinimum (low);
+
+  rangeHigh = highs[indexHighest];
+  rangeLow = low[indexLowest];
+  string objName = 
 }
