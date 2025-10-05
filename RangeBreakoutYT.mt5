@@ -1,9 +1,15 @@
-input int RangeHouStart = 3;
-input int RangeMinStart = 3;
-input int RangeHourEnd = 3;
-input int RangeMinEnd = 3;
-input int TradingEndHour = 18;
+#include <Trade/Trade.mqh>
+
+input double RiskMoney = 250;
+
+input int RangeHouStart = 4;
+input int RangeMinStart = 0;
+input int RangeHourEnd = 4;
+input int RangeMinEnd = 0;
+input int TradingEndHour = 19;
 input int TradingEndMin = 0;
+
+input int Magic = 100001
 
 datetime rangeTimeStart;
 datetime rangeTimeEnd;
@@ -12,7 +18,11 @@ datetime tradingTimeEnd;
 double rangeHig;
 double rangeLow;
 
+CTrade trade;
+bool isTrade;
+
 int OnInit(){
+  trade.SetExpertMagicNumber(Magic);
   return (INIT_SUCCEEDED);
 }
 
@@ -22,6 +32,27 @@ void OnDeinit (const int reason){
 void OnTick(){
   calcTimes();
   calcRange();
+
+  if(TimeCurrent() > rangeTimeEnd && TimeCurrent() < tradingTimeEnd){
+    if(!isTrade){
+      if(rangeHigh > 0 && rangeLow > 0){
+        if(bid > rangeHigh){
+          double lot = calcLots();
+          trade.Buy(1,_Symbol,0,rangeLow);
+          isTrade =  true;
+        }else if(bid < rangeLow){
+          double lot = calcLots()
+          trade.Sell(1,_Symbol,0,rangeHigh);
+          isTrade = true;
+        }
+      }  
+    }
+  }else if(TimeCurrent >= tradingTimeEnd){
+    for(int i = PositionsTotal() - 1; i >= 0; i--){
+      
+    }
+  }
+  
 }
 
 void calcTimes(){
@@ -31,6 +62,12 @@ void calcTimes(){
 
   dt.hour = RangeStartHour;
   dt.min = RangeStartMin;
+
+  if(rageTimeStart != StructToTime(dt))){
+    isTrade = false;
+    rangeHigh = 0;
+    rangeLow = 0;
+  }
   rangeTimeStart = StructToTime(dt);
 
   dt.hour = RangeEndHour;
@@ -45,7 +82,7 @@ void calcTimes(){
 void calcRange(){
   double highs[];
   CopyHigh(_Symbol,PERIOD_M1,rangeTimeStart, rangeTimeEnd, highs);
-
+  if(ArraySize(highs) < 1 || ArraySize(lows) < 1) return;
   double lows[];
   CopyLow(_Symbol,PERIOD_M1,rangeTimeStart, rangeTimeEnd, lows);
   int indexHighest = ArrayMaximum (highs);
@@ -53,5 +90,25 @@ void calcRange(){
 
   rangeHigh = highs[indexHighest];
   rangeLow = low[indexLowest];
-  string objName = 
+  string objName = "Range " + TimeToString(rangeTimeStart, TIME_DATE);
+  if(ObjectFind(0,objName) < 0)
+  {
+  ObjectCreate(0,objName,OBJ_RECTANGE,0,rangeTimeStart,rangeLow,rangeTimeEnd,rangeHigh);
+  OjectSetInteger(0,objName,OBJPRO_FILL,true);
+  OjectSetInteger(0,objName,OBJPRO_COLOR,clrYellow);
+  }else
+  {
+    ObjectSetDouble(0,OBJPROP_PRICE,0,rangeLow);
+    ObjectSetDouble(0,OBJPROP_PRICE,0,rangeHigh);
+   }
+}
+
+double calcLots(){
+  double tickSize = SymbolInfoDouble(_Symbol,SYMBOL_TRADE_TICK_SIZE);
+  double tickValue = SymbolInfoDouble(_Symbol,SYMBOL_TRADE_TICK_VALUE);
+  double rangeSize = rangeHigh - rangeLow;
+  double riskPerLot = rangeSize / tickSize * tickValue;
+  double lots = RiskMoney / riskPerLot;
+  lots = NormalizeDouble(lots,2);
+  return lots;
 }
